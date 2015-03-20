@@ -12,7 +12,8 @@
   gSystem->Load("$(GATE_DIR)/lib/libRecoSignal.so");
 
   RecoSignal* rsig = new RecoSignal(gate::NORMAL,"algo1");
-  rsig->SetMinHits(14);
+  rsig->SetMinS1Hits(4);
+  rsig->SetMinS2Hits(14);
 
   gate::Centella::instance(gate::NORMAL);
   gate::Centella::instance()->addInputFile("../../../DATA/DST_Cs137_3345_000_RP.root");

@@ -3,9 +3,7 @@
 
 #include <GATE/Centella.h>
 
-//typedef std::vector<gate::Pulse*> Signal;
-
-struct Signal{
+struct iSignal{
   
   double sT;
   double eT;
@@ -42,8 +40,11 @@ class RecoSignal : public gate::IAlgo {
   
  public:
   
-  //! set min number of hits for a good signal
-  inline void SetMinHits(size_t n){ _minHits = n; }
+  //! set min number of hits for a good S1 signal
+  inline void SetMinS1Hits(size_t n){ _minS1Hits = n; }
+  
+  //! set min number of hits for a good S2 signal
+  inline void SetMinS2Hits(size_t n){ _minS2Hits = n; }
 
   //! set max width for a S1 signal
   inline void SetMaxS1width(double w){ _maxS1width = w; }
@@ -51,13 +52,16 @@ class RecoSignal : public gate::IAlgo {
   //! set min width for a S2 signal
   inline void SetMinS2width(double w){ _minS2width = w; }
 
+  //! set numbe of sigmas over baseline to define a good SiPM pulse
+  inline void SetNsigOverPedSiPM(double n){ _nSigOverPedSiPM = n; }
+
  private:
   
   //! true if good signal 
-  bool isGoodSignal(Signal signal);
+  bool isGoodSignal(iSignal signal,gate::SIGNALTYPE stype);
   
   //! get signal type 
-  gate::SIGNALTYPE signalType(Signal signal);
+  gate::SIGNALTYPE signalType(iSignal signal);
 
   //! set default parameters
   void setDefaults();  
@@ -66,18 +70,21 @@ class RecoSignal : public gate::IAlgo {
   void bookHistos();
   
   //! fill signal histograms
-  void fillSigHistos(Signal sig);
+  void fillSigHistos(gate::Signal* sig);
   
   //! fill event histograms
-  void fillEvtHistos(const gate::Event& evt);
+  void fillEvtHistos();
 
   //! create gate HitMap from signal
-  gate::HitMap* buildHitMap(Signal sig);
+  void buildGateSignal(iSignal sig, gate::Event& evt);
   
  private:
   
-  //! min number of hits for a good signal
-  size_t _minHits;
+  //! min number of hits for a good S1 signal
+  size_t _minS1Hits;
+
+  //! min number of hits for a good S2 signal
+  size_t _minS2Hits;
   
   //! min width of S2 signals
   double _minS2width;
@@ -85,11 +92,20 @@ class RecoSignal : public gate::IAlgo {
   //! max width of S1 signals
   double _maxS1width;
   
-  //! counter for S1 hitmaps
+  //! number of sigmas over baseline defining a good SiPM pulse
+  double _nSigOverPedSiPM; 
+
+  //! counter for total S1 hitmaps
   size_t _nS1hmap; 
   
-  //! counter for S2 hitmaps
+  //! counter for total S2 hitmaps
   size_t _nS2hmap;
+  
+  //! counter for number of S1s in event 
+  size_t _nS1Evt;
+  
+  //! counter for number of S2s in event 
+  size_t _nS2Evt;
 
   ClassDef(RecoSignal,0)
     
