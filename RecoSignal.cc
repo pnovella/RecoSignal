@@ -88,6 +88,10 @@ void RecoSignal::bookHistos(){
 
   hman->h1("nS2Evt","nS2Evt; S2s per Event; Entries ",10,0,10);
 
+  hman->h1("ES1","S1 Energy; S1 Energy (PE); Entries ",110,0,1100);
+
+  hman->h1("ES2","S2 Energy; S2 Energy (PE); Entries ",110,0,42000);
+
 }
 
 //==========================================================================
@@ -171,10 +175,8 @@ bool RecoSignal::execute(gate::Event& evt){
       
       _m.message("Time window:",signal.sT,"-",signal.eT,gate::VERBOSE);
       
-      //if ( this->isGoodSignal(signal) ){		
       this->buildGateSignal(signal,evt);
-      //}
-
+      
     } // end of 1st loop over pulses
   
   } // end of 1st loop over channels
@@ -230,6 +232,10 @@ bool RecoSignal::finalize(){
 
   gate::Centella::instance()->hman()->draw("nS2Evt");
 
+  gate::Centella::instance()->hman()->draw("ES1");
+
+  gate::Centella::instance()->hman()->draw("ES2");
+
   return true;
 
 }
@@ -255,8 +261,6 @@ void RecoSignal::fillSigHistos(gate::Signal* sig){
   
   if (nsihits) nsihits /= hm.size(); //average
 
-  //size_t nsihits = sig->GetAnoHitMap().GetMap(0).size();// at sart time!!!! 
-
   double width = sig->GetEndTime() - sig->GetStartTime();
   
   double startT = sig->GetStartTime();
@@ -277,6 +281,8 @@ void RecoSignal::fillSigHistos(gate::Signal* sig){
   
     gate::Centella::instance()-> hman()->fill("wTS1",width/unit);
     
+    gate::Centella::instance()->hman()->fill("ES1",sig->GetAmplitude());
+
   }
   
   else if (type==gate::S2){
@@ -289,6 +295,8 @@ void RecoSignal::fillSigHistos(gate::Signal* sig){
   
     gate::Centella::instance()-> hman()->fill("wTS2",width/unit);
     
+    gate::Centella::instance()->hman()->fill("ES2",sig->GetAmplitude());
+
   }
 
 }
@@ -297,9 +305,7 @@ void RecoSignal::fillSigHistos(gate::Signal* sig){
 //==========================================================================
 void RecoSignal::fillEvtHistos(){
 //==========================================================================
-    
-  //size_t nSigs = evt.GetHitMaps(gate::PMT).size();
-
+   
   gate::Centella::instance()->hman()->fill("nSigEvt",_nS1Evt+_nS2Evt);
   
   gate::Centella::instance()->hman()->fill("nS1Evt",_nS1Evt);
