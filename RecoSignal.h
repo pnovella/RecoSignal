@@ -8,8 +8,10 @@ struct iSignal{
   double sT;
   double eT;
   double amp;
-  std::vector<gate::Pulse*> pulses;
-  std::vector<gate::Hit*> hits;
+  double sWidth;
+  //std::vector<gate::Pulse*> pulses;
+  std::map<int,gate::Hit*> hits;
+  std::multimap<int,gate::Pulse*> pulses;
 
 };
 

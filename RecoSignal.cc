@@ -20,6 +20,22 @@ RecoSignal::RecoSignal(const gate::ParamStore& gs,
   
   this->setDefaults();
 
+  try{  _minS1Hits = gs.fetch_istore("MIN_S1_HITS");  }
+    
+  catch(exception& e) { _minS1Hits = 1; }
+
+  try{  _minS2Hits = gs.fetch_istore("MIN_S2_HITS");  }
+    
+  catch(exception& e) { _minS2Hits = 1; }
+  
+  try{  _maxS1width = gs.fetch_dstore("MAX_S1_WIDTH");  }
+    
+  catch(exception& e) { _maxS1width = 1000000; }
+
+  try{  _minS2width = gs.fetch_dstore("MIN_S2_WIDTH");  }
+    
+  catch(exception& e) { _minS2width = 0; }
+    
 }
 
 //==========================================================================
@@ -90,7 +106,7 @@ void RecoSignal::bookHistos(){
 
   hman->h1("ES1","S1 Energy; S1 Energy (PE); Entries ",110,0,1100);
 
-  hman->h1("ES2","S2 Energy; S2 Energy (PE); Entries ",110,0,42000);
+  hman->h1("ES2","S2 Energy; S2 Energy (PE); Entries ",220,0,22000);
 
 }
 
@@ -120,15 +136,27 @@ bool RecoSignal::execute(gate::Event& evt){
 
       iSignal signal;
 
-      signal.pulses.push_back( *ip );
+      //signal.pulses.push_back( *ip );
+      signal.pulses.insert(std::make_pair((*ip)->GetSensorID(),*ip));
 
-      signal.hits.push_back( *ih );
+      //signal.hits.push_back( *ih );
+      signal.hits[ (*ih)->GetSensorID() ]= *ih;
+      
+      signal.sWidth = (*ih)->GetWaveform().GetSampWidth();
+
+      //int id = (*ih)->GetSensorID();
+      
+      //std::vector<gate::Hit*> hits = signal.hits();
+
+      //if (std::find(hits.begin(),hits.end(),id)==hits.end()){ 
+
+      //signal.hits.push_back( *ih );}
 
       signal.sT = (*ip)->GetStartTime(); 
 
       signal.eT = (*ip)->GetEndTime(); 
 
-      signal.amp = (*ip)->GetAmplitude(); 
+      signal.amp = (*ip)->GetCharge(); 
 
       std::vector<gate::Hit*>::iterator ih2;
       
@@ -152,15 +180,17 @@ bool RecoSignal::execute(gate::Event& evt){
 	       
 	       (te2 > signal.sT && te2< signal.eT)){ //same signal
 	     
-	     signal.pulses.push_back(*ip2); 
-	     
-	     signal.hits.push_back(*ih2); 
+	     //signal.pulses.push_back(*ip2); 
+	     signal.pulses.insert(std::make_pair((*ip2)->GetSensorID(),*ip2));
+
+	     //signal.hits.push_back(*ih2); 
+	     signal.hits[ (*ih2)->GetSensorID() ]= *ih2;
 
 	     signal.sT = std::min(ts2,signal.sT); 
 
 	     signal.eT = std::max(te2,signal.eT);
 	     
-	     signal.amp += (*ip2)->GetAmplitude(); 
+	     signal.amp += (*ip2)->GetCharge(); 
 
 	     (*ip2)->store("InSignal",1);
 	   } 
@@ -250,7 +280,7 @@ void RecoSignal::fillSigHistos(gate::Signal* sig){
   gate::SIGNALTYPE type = sig->GetSignalType();
 
   size_t nhits = sig->GetCatHitMap().GetMap(0).size(); 
-    
+
   size_t nsihits = 0;
 
   std::vector<std::map<int,double> >::const_iterator im;
@@ -293,7 +323,7 @@ void RecoSignal::fillSigHistos(gate::Signal* sig){
 
     gate::Centella::instance()->hman()->fill("sTS2",startT/unit);
   
-    gate::Centella::instance()-> hman()->fill("wTS2",width/unit);
+    gate::Centella::instance()->hman()->fill("wTS2",width/unit);
     
     gate::Centella::instance()->hman()->fill("ES2",sig->GetAmplitude());
 
@@ -337,24 +367,30 @@ void RecoSignal::buildGateSignal(iSignal sig, gate::Event& evt){
   
   chmap->SetAmplitude(sig.amp);
   
-  chmap->SetTimeSample(sig.hits[0]->GetWaveform().GetSampWidth());
+  //chmap->SetTimeSample(sig.hits.begin().second->GetWaveform().GetSampWidth());
+  chmap->SetTimeSample(sig.sWidth);
   
   chmap->SetSignalType(stype);
   
   std::vector<std::map<int,double> > cmap;
   
-  std::vector<gate::Pulse*>::iterator ip;
+  //std::vector<gate::Pulse*>::iterator ip;
+  std::multimap<int,gate::Pulse*>::iterator ip;
   
   std::map<int,double> tcmap;
-  
+
   for (ip =sig.pulses.begin(); ip != sig.pulses.end(); ++ip){
     
-    tcmap[(*ip)->GetSensorID()] = (*ip)->GetAmplitude(); }
+    if (tcmap.find((*ip).first)!=tcmap.end()) {
+      
+      tcmap[(*ip).first] += (*ip).second->GetCharge();}
+ 
+    else tcmap[(*ip).first] = (*ip).second->GetCharge(); }
   
   cmap.push_back(tcmap); // just one time slice (integrated)
   
   chmap->SetTimeMap(cmap);
-  
+ 
   //------- Create anode hitmap ------//
   
   gate::HitMap* ahmap = new gate::HitMap();
@@ -389,9 +425,9 @@ void RecoSignal::buildGateSignal(iSignal sig, gate::Event& evt){
       
       double ped = (*ih)->GetWaveform().GetBaseline();
       
-      double pedRMS = (*ih)->GetWaveform().GetBaselineRMS();
+      double pedSig = (*ih)->GetWaveform().GetBaselineSig();
       
-      double minAmp =  pedRMS * _nSigOverPedSiPM;
+      double minAmp =  pedSig * _nSigOverPedSiPM;
 
       amp -= ped; 
 
@@ -440,11 +476,29 @@ bool RecoSignal::isGoodSignal(iSignal signal, gate::SIGNALTYPE stype){
   
   //! TO BE FURTHER DEVELOPED!!!!!
 
-  bool ok = true;
+  bool ok = false;
 
-  if (stype==gate::S1){ ok = (signal.pulses.size()>_minS1Hits); }
+  if (stype==gate::S1){ ok = (signal.hits.size()>_minS1Hits); }
   
-  else { ok = (signal.pulses.size()>_minS2Hits); }
+  else if (stype==gate::S2) { ok = (signal.hits.size()>_minS2Hits); }
+
+  // std::vector<gate::Pulse*>::iterator ip;
+  // std::map<int,gate::Pulse*> pmap;
+  
+  // for (ip =signal.pulses.begin(); ip != signal.pulses.end(); ++ip){
+
+  //   if ( pmap.find( (*ip)->GetSensorID() )!=  pmap.end() ){
+  //     std::cout<<"pulse in same channel!! "<<(*ip)->GetSensorID()<<std::endl;
+  //     std::cout<<pmap[(*ip)->GetSensorID()]->GetStartTime()<<"-"<<
+  // 	pmap[(*ip)->GetSensorID()]->GetEndTime()<<std::endl;
+  //     std::cout<<(*ip)->GetStartTime()<<"-"<<(*ip)->GetEndTime()<<std::endl;
+  //     std::cout<<signal.sT<<"-"<<signal.eT<<std::endl;
+  //     std::cout<<"--------"<<std::endl;
+  //   }
+    
+  //   else pmap[(*ip)->GetSensorID()]=(*ip);
+
+  // }
 
   return ok;
   
