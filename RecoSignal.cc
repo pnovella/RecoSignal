@@ -228,12 +228,14 @@ bool RecoSignal::finalize(){
   
   _m.message("Number of S2 hitmaps:",_nS2hmap,gate::NORMAL);
     
-  size_t ntot = gate::Centella::instance()->getInEvents(); 
+  _m.message("S1 signals per event:",
+	     gate::Centella::instance()->hman()->fetch("nS1Evt")->GetMean(),
+	     gate::NORMAL);
 
-  _m.message("S1 signals per event:",_nS1hmap*1./ntot,gate::NORMAL);
+  _m.message("S2 signals per event:",
+	     gate::Centella::instance()->hman()->fetch("nS2Evt")->GetMean(),
+	     gate::NORMAL);
 
-  _m.message("S2 signals per event:",_nS2hmap*1./ntot,gate::NORMAL);
-  
   gate::Centella::instance()->hman()->draw("nHit");
   
   gate::Centella::instance()->hman()->draw("nHitS1");
@@ -261,7 +263,7 @@ bool RecoSignal::finalize(){
   gate::Centella::instance()->hman()->draw("nS1Evt");
 
   gate::Centella::instance()->hman()->draw("nS2Evt");
-
+ 
   gate::Centella::instance()->hman()->draw("ES1");
 
   gate::Centella::instance()->hman()->draw("ES2");
@@ -278,7 +280,7 @@ void RecoSignal::fillSigHistos(gate::Signal* sig){
   double unit = gate::microsecond;
   
   gate::SIGNALTYPE type = sig->GetSignalType();
-
+  
   size_t nhits = sig->GetCatHitMap().GetMap(0).size(); 
 
   size_t nsihits = 0;
@@ -439,6 +441,14 @@ void RecoSignal::buildGateSignal(iSignal sig, gate::Event& evt){
   }   
   
   ahmap->SetTimeMap(amap);
+  
+  //------- Clear SiPM waveform data TO FIX!!!!! ------//
+
+  std::vector<gate::Hit*>::iterator ih;
+
+  for (ih = sipms.begin(); ih != sipms.end(); ++ih){
+    
+    (*ih)->GetWaveform().ClearData(); }
 
   //------- Create gate Signal ------//
   
