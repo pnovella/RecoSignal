@@ -1,0 +1,61 @@
+
+
+#---------------  C++ libraries ----------------#
+CNTJob LIBS SV 2
+./../../RecoPulse/lib/libRecoPulse.so
+./../lib/libRecoSignal.so
+
+#--------- DATA -------#
+CNTJob INPUT_DATA SV 1
+/home/pnovella/Physics/NEXT/DATA/DST_3350_001.root
+#/home/pnovella/Physics/NEXT/DATA/DST_3350_001.root
+#/home/pnovella/Physics/NEXT/DATA/DST_3350_002.root
+#/home/pnovella/Physics/NEXT/DATA/DST_3350_003.root
+#/home/pnovella/Physics/NEXT/DATA/DST_3350_004.root
+#/home/pnovella/Physics/NEXT/DATA/DST_3350_005.root
+#/home/pnovella/Physics/NEXT/DATA/DST_3350_006.root
+#/home/pnovella/Physics/NEXT/DATA/DST_3350_007.root
+#/home/pnovella/Physics/NEXT/DATA/DST_3350_008.root
+#/home/pnovella/Physics/NEXT/DATA/DST_3350_009.root
+
+#--------- DATA -------#
+CNTJob OUTPUT_DATA SV 1
+/home/pnovella/Physics/NEXT/DATA/DST_3350_000_RS_test.root
+
+#--------- DATA READER -------#
+CNTJob READER S gateReader
+
+#--------- DATA WRITER -------#
+CNTJob WRITER S gateWriter
+
+#------ SAVE EVENTS IN OUTPUT FILE ----------# 
+CNTJob SAVE I 1
+
+#---------- NUMBER OF EVENTS TO ANALYZE ----------#
+CNTJob NEVENTS I 10
+
+#--------- ALGORITHMS -------#
+CNTJob ALGOS SV 2
+RecoPulse
+RecoSignal
+
+#--------- RecoSignal PARAMS -------#
+RecoSignal LAN S c++
+RecoSignal LEVEL I 1
+RecoSignal MIN_S1_HITS I 1
+RecoSignal MIN_S2_HITS I 1
+RecoSignal MAX_S1_WIDTH D 3 microsecond 
+RecoSignal MIN_S2_WIDTH D 3 microsecond
+
+#--------- RecoPulse PARAMS -------#
+RecoPulse LAN S c++
+RecoPulse LEVEL I 1
+RecoPulse CLEAR_WF I 1
+
+
+#------------- log file -------------#
+CNTJob FLOG I 1
+CNTJob FLOG S RecoSignal.log
+
+#---------- histogram file ----------#
+CNTJob FHISTOS S RecoSignal.root
