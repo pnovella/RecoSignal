@@ -405,9 +405,13 @@ void RecoSignal::buildGateSignal(iSignal sig, gate::Event& evt){
   
   ahmap->SetEndTime(sig.eT);
 
+  ahmap->SetSignalType(stype);
+
   std::vector<gate::Hit*> sipms = evt.GetHits(gate::SIPM);
   
   double swidth = sipms[0]->GetWaveform().GetSampWidth();
+  
+  ahmap->SetTimeSample(swidth);
 
   int isample = (int) sig.sT / swidth;
 
@@ -415,6 +419,8 @@ void RecoSignal::buildGateSignal(iSignal sig, gate::Event& evt){
   
   std::vector<std::map<int,double> > amap;
   
+  gate::Run* runI = &gate::Centella::instance()->getRun();
+
   for (int i=isample; i<fsample; i++){
     
     std::map<int,double> tamap;
@@ -432,9 +438,14 @@ void RecoSignal::buildGateSignal(iSignal sig, gate::Event& evt){
       double minAmp =  pedSig * _nSigOverPedSiPM;
 
       amp -= ped; 
-
-      if( amp > minAmp) tamap[(*ih)->GetSensorID()] = amp;
       
+      if( amp > minAmp){ 
+	
+	int sID = (*ih)->GetSensorID();
+
+	double gain = fabs(runI->GetSensor(sID)->GetGain());
+	
+	tamap[sID] = amp/gain; }
     }
         
     amap.push_back(tamap);
